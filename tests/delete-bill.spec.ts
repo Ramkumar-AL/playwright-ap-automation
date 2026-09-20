@@ -3,10 +3,11 @@ import { generateBillNumber } from '../utils/testData';
 import { createBill } from '../utils/billHelpers';
 
 // This app has no confirm/cancel dialog on delete — selecting "Delete" from
-// the row menu removes the bill immediately (with a toast, not a modal).
-// The "cancel" scenario is adapted accordingly: dismissing the actions menu
-// without picking Delete is the safe path, and only an explicit Delete click
-// is destructive.
+// the row menu removes the bill immediately, with a "Bill deleted" toast
+// (confirmed exact wording per AP-082) rather than a modal. The "cancel"
+// scenario is adapted accordingly: dismissing the actions menu without
+// picking Delete is the safe path, and only an explicit Delete click is
+// destructive.
 test.describe('Delete bill', () => {
   test('dismissing the row menu without choosing Delete keeps the bill in the list', async ({
     page,
@@ -42,7 +43,7 @@ test.describe('Delete bill', () => {
     await billsListPage.rowActionsTrigger(0).click();
     await page.getByRole('menuitem', { name: 'Delete' }).click();
 
-    await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Bill deleted')).toBeVisible({ timeout: 10_000 });
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);

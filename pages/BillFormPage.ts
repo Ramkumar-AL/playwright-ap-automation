@@ -4,8 +4,10 @@ export interface LineItem {
   description: string;
   itemName: string;
   quantity: number;
-  /** The line's amount, entered directly into the Subtotal field (this app does not auto-derive it from quantity × rate). */
-  subtotal: number;
+  /** When set, fills Unit Rate and lets Amount auto-calculate as quantity × unitRate (the app's documented, intended flow). */
+  unitRate?: number;
+  /** When set (and unitRate isn't), types the line's Amount directly instead. */
+  subtotal?: number;
 }
 
 export interface BillHeader {
@@ -14,6 +16,10 @@ export interface BillHeader {
   supplierInvoiceNo?: string;
   /** Exact vendor text to pick; when omitted, the first suggestion is used. */
   vendor?: string;
+  /** Exact GST Registration text to pick; when omitted, the first suggestion is used. */
+  gstRegistration?: string;
+  /** Exact Purchase Ledger text to pick; when omitted, the first suggestion is used. */
+  purchaseLedger?: string;
 }
 
 /**
@@ -36,7 +42,6 @@ export class BillFormPage {
   readonly addLineItemButton: Locator;
   readonly saveButton: Locator;
   readonly attachmentInput: Locator;
-  readonly validationMessages: Locator;
   readonly successToastCloseButton: Locator;
 
   constructor(page: Page) {
@@ -52,7 +57,6 @@ export class BillFormPage {
     this.addLineItemButton = page.getByRole('button', { name: /add line item/i });
     this.saveButton = page.getByTestId('top-bar-button-save');
     this.attachmentInput = page.locator('input[type="file"]');
-    this.validationMessages = page.getByRole('alert').or(page.getByText(/required|cannot be blank|is required/i));
     // This app's toast library exposes a generic "Close toast" dismiss button
     // on every success/error toast, making it a reliable action-completed signal.
     this.successToastCloseButton = page.getByRole('button', { name: 'Close toast' });
@@ -60,7 +64,11 @@ export class BillFormPage {
 
   async fillHeader(header: BillHeader) {
     await this.locationTrigger.click();
-    await this.suggestionsListbox.click();
+    if (header.gstRegistration) {
+      await this.page.getByText(header.gstRegistration, { exact: true }).click();
+    } else {
+      await this.suggestionsListbox.click();
+    }
 
     await this.billNumberInput.fill(header.billNumber);
 
@@ -86,7 +94,7 @@ export class BillFormPage {
     // Purchase Ledger must be chosen before line items are touched — some
     // per-row fields (e.g. Godown/Location on rows beyond the first) stay
     // disabled until it's set.
-    await this.selectPurchaseLedger();
+    await this.selectPurchaseLedger(header.purchaseLedger);
   }
 
   async addLineItem(item: LineItem, rowIndex: number) {
@@ -105,12 +113,22 @@ export class BillFormPage {
     // later rows it stays disabled regardless (confirmed manually) — it does
     // not gate Quantity/Subtotal, which unlock once Purchase Ledger is set.
     await this.page.getByTestId(`line-items-input-quantity-${rowIndex}`).fill(String(item.quantity));
-    await this.page.getByTestId(`line-items-input-subtotal-${rowIndex}`).fill(String(item.subtotal));
+
+    if (item.unitRate !== undefined) {
+      // Documented flow: Amount auto-calculates as quantity × unitRate.
+      await this.page.getByTestId(`line-items-input-unit-rate-${rowIndex}`).fill(String(item.unitRate));
+    } else if (item.subtotal !== undefined) {
+      await this.page.getByTestId(`line-items-input-subtotal-${rowIndex}`).fill(String(item.subtotal));
+    }
   }
 
-  async selectPurchaseLedger() {
+  async selectPurchaseLedger(exactName?: string) {
     await this.purchaseLedgerTrigger.click();
-    await this.suggestionsListbox.click();
+    if (exactName) {
+      await this.page.getByText(exactName, { exact: true }).click();
+    } else {
+      await this.suggestionsListbox.click();
+    }
   }
 
   async save() {

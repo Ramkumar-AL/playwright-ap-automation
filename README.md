@@ -86,8 +86,11 @@ few app-specific behaviors worth knowing:
   dropdowns (`data-testid`-based) rather than native `<select>`/`<label>`
   pairs, and a shared `role="listbox"` named "Suggestions" that several
   fields reuse.
-- A line item's amount is entered directly into a **Subtotal** field — it is
-  not derived from Quantity × Unit Rate.
+- A line item's Amount can be entered two ways: fill **Unit Rate** and let it
+  auto-calculate as Quantity × Unit Rate (the documented, intended flow — used
+  by `create-bill.spec.ts`), or type directly into **Subtotal** (used by the
+  simpler single-line-item helper in `utils/billHelpers.ts`). `BillFormPage.addLineItem()`
+  supports both via the `LineItem.unitRate` / `LineItem.subtotal` fields.
 - Voucher Type defaults to "Purchase" and doesn't need to be touched.
 - Every successful action (create, edit, delete) shows a toast with a
   generic "Close toast" dismiss button, used across the suite as the
@@ -104,6 +107,17 @@ if they fail, open the failing test's trace (`npm run test:ui` or
 `npx playwright show-trace <path>`) to see the actual DOM/message and update
 `pages/BillFormPage.ts` accordingly; every test consumes these getters, so a
 single fix there propagates everywhere.
+
+## Source of test data
+
+Test data (exact vendor/GST Registration/Purchase Ledger names, expected
+totals) and exact success/validation message wording used in the specs come
+from a manually-authored, verified test case document (`AP_Module_TestCases_final.xlsx`,
+test cases AP-001, AP-013, AP-079, AP-082, AP-083/AP-084), not from guessing.
+That document covers a much larger surface (Review Voucher approval, vendor
+matching, split bills, sync, bulk uploads, and more) than this suite
+automates — this project deliberately stays scoped to the five scenarios
+above.
 
 ## Fixtures
 

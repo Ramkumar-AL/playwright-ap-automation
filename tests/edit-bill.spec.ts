@@ -22,7 +22,8 @@ test.describe('Edit bill', () => {
     await expect.poll(() => billFormPage.getGrandTotal()).toBe(expectedTotal);
 
     await billFormPage.save();
-    await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
+    // Exact wording confirmed per AP-079.
+    await expect(billFormPage.page.getByText('Bill updated')).toBeVisible({ timeout: 10_000 });
 
     // Persisted total in the bill's own (read-only) details view.
     await billsListPage.goto();

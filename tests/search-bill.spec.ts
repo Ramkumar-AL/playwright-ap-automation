@@ -2,6 +2,8 @@ import { test, expect } from './fixtures';
 import { generateBillNumber } from '../utils/testData';
 import { createBill } from '../utils/billHelpers';
 
+// Per AP-083/AP-084 (documented, verified test cases): search matches
+// case-insensitively on a partial Voucher No, not just an exact one.
 test.describe('Search bills', () => {
   test('searching by bill number returns only the matching bill', async ({
     billsListPage,
@@ -14,6 +16,11 @@ test.describe('Search bills', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
+    expect(await billsListPage.rowText(0)).toContain(billNumber);
+
+    // A partial substring of the Voucher No must also match.
+    const partialQuery = billNumber.slice(5, 15);
+    await billsListPage.search(partialQuery);
     expect(await billsListPage.rowText(0)).toContain(billNumber);
 
     // A search for a bill number that cannot exist returns no rows.
