@@ -14,7 +14,7 @@ test.describe('Create bill', () => {
     await billFormPage.fillHeader({ billNumber });
 
     await billFormPage.addLineItem({ description: 'Office chairs', itemName: '1 Ltr Pet Bottle', quantity: 2, subtotal: 300 }, 0);
-    await billFormPage.addLineItem({ description: 'Standing desk', itemName: '1 Ltr Pet Bottle', quantity: 1, subtotal: 400 }, 1);
+    await billFormPage.addLineItem({ description: 'Standing desk', itemName: '1 Ltr. Pouch Film', quantity: 1, subtotal: 400 }, 1);
 
     const expectedTotal = 300 + 400; // 700
     await expect.poll(() => billFormPage.getGrandTotal()).toBe(expectedTotal);
