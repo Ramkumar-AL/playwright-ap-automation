@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 /**
  * Locators verified against the real Purchases list
@@ -31,6 +31,18 @@ export class BillsListPage {
 
   async search(query: string) {
     await this.searchInput.fill(query);
+    // The table shows loading skeletons briefly after a search; wait for real
+    // matching data (or a genuine empty state) before any caller acts on it.
+    await expect
+      .poll(
+        async () => {
+          if (await this.hasNoResults()) return true;
+          const text = await this.rowText(0).catch(() => '');
+          return text.includes(query);
+        },
+        { timeout: 10_000 }
+      )
+      .toBe(true);
   }
 
   rowOpenCell(rowIndex = 0): Locator {
