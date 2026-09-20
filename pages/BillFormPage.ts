@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 export interface LineItem {
   description: string;
@@ -101,16 +101,35 @@ export class BillFormPage {
     // already-selected value with matching text elsewhere on the page.
     await this.page.getByText(item.itemName, { exact: true }).last().click();
 
-    // Godown/Location is only sometimes an active, selectable control —
-    // skip it when disabled rather than hang waiting for it to become enabled.
-    const godownTrigger = this.page.getByTestId(`line-items-select-godown-location-${rowIndex}`);
-    if (await godownTrigger.isEnabled().catch(() => false)) {
-      await godownTrigger.click();
-      await this.suggestionsListbox.click();
+    if (rowIndex > 0) {
+      // Row 0 comes with a usable Godown/Location default ("Main Location");
+      // rows added afterward start empty, and their Quantity/Subtotal fields
+      // stay disabled until one is explicitly picked.
+      await this.selectGodownLocation(rowIndex);
     }
 
     await this.page.getByTestId(`line-items-input-quantity-${rowIndex}`).fill(String(item.quantity));
     await this.page.getByTestId(`line-items-input-subtotal-${rowIndex}`).fill(String(item.subtotal));
+  }
+
+  private async selectGodownLocation(rowIndex: number) {
+    const trigger = this.page.getByTestId(`line-items-select-godown-location-${rowIndex}`);
+    // It stays disabled briefly after the item selection's data finishes loading.
+    await expect(trigger).toBeEnabled({ timeout: 10_000 });
+    await trigger.click();
+
+    if (await this.suggestionsListbox.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await this.suggestionsListbox.click();
+      return;
+    }
+    const option = this.page.getByRole('option').first();
+    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await option.click();
+      return;
+    }
+    // Fallback: this dropdown renders as grouped entries rather than a flat
+    // "Suggestions" listbox or plain options.
+    await this.page.getByRole('group').first().click();
   }
 
   async selectPurchaseLedger() {
