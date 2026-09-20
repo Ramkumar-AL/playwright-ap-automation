@@ -29,7 +29,7 @@ test.describe('Edit bill', () => {
     await billsListPage.goto();
     rowIndex = await billsListPage.search(billNumber);
     await billsListPage.openBillByNumber(billNumber, rowIndex);
-    await expect(billFormPage.page.getByText(expectedTotal.toString())).toBeVisible();
+    await expect.poll(() => billFormPage.getGrandTotal()).toBe(expectedTotal);
 
     // Persisted total reflected back in the bills list.
     await billsListPage.goto();
