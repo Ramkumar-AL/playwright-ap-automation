@@ -82,6 +82,11 @@ export class BillFormPage {
       await stateTrigger.click();
       await this.suggestionsListbox.click();
     }
+
+    // Purchase Ledger must be chosen before line items are touched — some
+    // per-row fields (e.g. Godown/Location on rows beyond the first) stay
+    // disabled until it's set.
+    await this.selectPurchaseLedger();
   }
 
   async addLineItem(item: LineItem, rowIndex: number) {
@@ -96,10 +101,13 @@ export class BillFormPage {
     // already-selected value with matching text elsewhere on the page.
     await this.page.getByText(item.itemName, { exact: true }).last().click();
 
-    // A row's Quantity/Subtotal stay disabled until Godown/Location is set —
-    // rows beyond the first don't inherit a usable default the way row 0 does.
-    await this.page.getByTestId(`line-items-select-godown-location-${rowIndex}`).click();
-    await this.suggestionsListbox.click();
+    // Godown/Location is only sometimes an active, selectable control —
+    // skip it when disabled rather than hang waiting for it to become enabled.
+    const godownTrigger = this.page.getByTestId(`line-items-select-godown-location-${rowIndex}`);
+    if (await godownTrigger.isEnabled().catch(() => false)) {
+      await godownTrigger.click();
+      await this.suggestionsListbox.click();
+    }
 
     await this.page.getByTestId(`line-items-input-quantity-${rowIndex}`).fill(String(item.quantity));
     await this.page.getByTestId(`line-items-input-subtotal-${rowIndex}`).fill(String(item.subtotal));

@@ -16,7 +16,6 @@ test.describe('Upload bill attachment - invalid file', () => {
     const errorMessage = billFormPage.page.getByText(/unsupported file type|invalid file|not allowed/i).first();
     // Some apps validate on file selection, others only on save — cover both.
     if (!(await errorMessage.isVisible().catch(() => false))) {
-      await billFormPage.selectPurchaseLedger();
       await billFormPage.save();
     }
     await expect(errorMessage).toBeVisible({ timeout: 10_000 });

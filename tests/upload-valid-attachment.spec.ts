@@ -16,7 +16,6 @@ test.describe('Upload bill attachment - valid file', () => {
     await billsListPage.openNewBillForm();
     await billFormPage.fillHeader({ billNumber });
     await billFormPage.addLineItem({ description: 'Consulting services', itemName: '1 Ltr Pet Bottle', quantity: 1, subtotal: 100 }, 0);
-    await billFormPage.selectPurchaseLedger();
 
     await billFormPage.uploadAttachment(VALID_PDF);
     await expect(billFormPage.page.getByText(/sample-bill\.pdf/i)).toBeVisible({ timeout: 10_000 });

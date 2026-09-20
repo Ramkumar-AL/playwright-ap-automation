@@ -12,7 +12,6 @@ export async function createBill(
   await billsListPage.openNewBillForm();
   await billFormPage.fillHeader({ billNumber });
   await billFormPage.addLineItem(lineItem, 0);
-  await billFormPage.selectPurchaseLedger();
   await billFormPage.save();
   await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
 }
