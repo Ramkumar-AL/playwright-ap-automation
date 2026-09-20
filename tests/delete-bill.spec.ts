@@ -2,14 +2,15 @@ import { test, expect } from './fixtures';
 import { generateBillNumber } from '../utils/testData';
 import { createBill } from '../utils/billHelpers';
 
-// This app has no confirm/cancel dialog on delete — selecting "Delete" from
-// the row menu removes the bill immediately, with a "Bill deleted" toast
-// (confirmed exact wording per AP-082) rather than a modal. The "cancel"
-// scenario is adapted accordingly: dismissing the actions menu without
-// picking Delete is the safe path, and only an explicit Delete click is
-// destructive.
+// Deletion goes through the always-visible trash icon on a bill's own
+// details page (data-testid="bill-button-delete") — the list's "..." menu
+// only renders on hover, which Playwright can't reliably trigger. There is
+// no confirm/cancel dialog either way; deleting shows a "Bill deleted" toast
+// (exact wording per AP-082). The "cancel" scenario is adapted accordingly:
+// viewing the details page and navigating back without deleting is the safe
+// path, and only an explicit click on the trash icon is destructive.
 test.describe('Delete bill', () => {
-  test('dismissing the row menu without choosing Delete keeps the bill in the list', async ({
+  test('viewing the details page without deleting keeps the bill in the list', async ({
     page,
     billsListPage,
     billFormPage,
@@ -21,27 +22,24 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.rowActionsTrigger(0).click();
+    await billsListPage.openBillAtRow(0);
 
-    const deleteMenuItem = page.getByRole('menuitem', { name: 'Delete' });
-    await expect(deleteMenuItem).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(deleteMenuItem).toBeHidden();
+    await expect(page.getByTestId('bill-button-delete')).toBeVisible();
+    await page.getByTestId('ap-button-back').click();
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
     expect(await billsListPage.hasNoResults()).toBe(false);
   });
 
-  test('choosing Delete removes the bill from the list', async ({ page, billsListPage, billFormPage }) => {
+  test('clicking the delete icon removes the bill from the list', async ({ page, billsListPage, billFormPage }) => {
     const billNumber = generateBillNumber();
     // No cleanup tracking needed: the test itself deletes the bill.
     await createBill(billsListPage, billFormPage, billNumber);
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.rowActionsTrigger(0).click();
-    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    await billsListPage.deleteBillAtRow(0);
 
     await expect(page.getByText('Bill deleted')).toBeVisible({ timeout: 10_000 });
 

@@ -35,8 +35,7 @@ export const test = base.extend<Fixtures>({
       if (await listPage.hasNoResults()) continue;
 
       // Deletion here is immediate — there is no confirm dialog.
-      await listPage.rowActionsTrigger(0).click();
-      await page.getByRole('menuitem', { name: 'Delete' }).click();
+      await listPage.deleteBillAtRow(0);
     }
   },
 });

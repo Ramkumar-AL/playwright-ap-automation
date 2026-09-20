@@ -5,9 +5,12 @@ import { Page, Locator, expect } from '@playwright/test';
  * (https://app.aiaccountant.com/accounts-payable) via Playwright codegen and
  * DevTools inspection. The table uses
  * data-testid="ap-table-row-{rowIndex}-cell-{colIndex}"; cell index 3 is the
- * clickable cell that opens a bill, cell index 8 holds the row's "..."
- * actions button (data-testid="ap-button-Option"). Clicking "Delete" from
- * that menu deletes immediately — there is no confirm/cancel dialog.
+ * clickable cell that opens a bill. The row's "..." actions button
+ * (data-testid="ap-button-Option", cell index 8) only renders on hover,
+ * which Playwright's click can't reliably trigger — deletion instead goes
+ * through the always-visible trash icon on the bill's own details page
+ * (data-testid="bill-button-delete"). Clicking it deletes immediately;
+ * there is no confirm/cancel dialog either way.
  */
 export class BillsListPage {
   readonly page: Page;
@@ -63,12 +66,14 @@ export class BillsListPage {
     await this.page.getByTestId('bill-button-edit').click();
   }
 
-  async rowText(rowIndex = 0): Promise<string> {
-    return (await this.rowLocator(rowIndex).innerText()).trim();
+  /** Deletes a bill from its own details page (the reliable path — the list's hover-only "..." menu is not). */
+  async deleteBillAtRow(rowIndex = 0) {
+    await this.openBillAtRow(rowIndex);
+    await this.page.getByTestId('bill-button-delete').click();
   }
 
-  rowActionsTrigger(rowIndex = 0): Locator {
-    return this.page.getByTestId(`ap-table-row-${rowIndex}-cell-8`).getByTestId('ap-button-Option');
+  async rowText(rowIndex = 0): Promise<string> {
+    return (await this.rowLocator(rowIndex).innerText()).trim();
   }
 
   async hasNoResults(): Promise<boolean> {
