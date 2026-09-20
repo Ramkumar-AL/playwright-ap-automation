@@ -1,64 +1,58 @@
 import { Page, Locator } from '@playwright/test';
 
 /**
- * Locators here are best-effort, role/label-based guesses (the AUT could not be
- * reached from the environment this suite was authored in — outbound network
- * access was blocked by sandbox policy). If the real DOM uses different
- * labels/roles, adjust the getters below; every test consumes them, so a
- * single edit here propagates everywhere.
+ * Locators verified against the real Purchases list
+ * (https://app.aiaccountant.com/accounts-payable) via Playwright codegen.
+ * The table uses data-testid="ap-table-row-{rowIndex}-cell-{colIndex}"; cell
+ * index 3 is the clickable cell that opens a bill. The row-actions ("...")
+ * trigger has no captured testid, so it's targeted as the last button in the
+ * row — verify this if the delete flow doesn't find it.
  */
 export class BillsListPage {
   readonly page: Page;
   readonly newBillButton: Locator;
   readonly searchInput: Locator;
-  readonly table: Locator;
-  readonly noResultsMessage: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.newBillButton = page.getByRole('button', { name: /new bill|create bill|add bill/i });
-    this.searchInput = page.getByPlaceholder(/search/i);
-    this.table = page.getByRole('table');
-    this.noResultsMessage = page.getByText(/no (bills|results|records) found/i);
+    this.newBillButton = page.getByRole('button', { name: /create bill/i });
+    this.searchInput = page.getByTestId('filter-search-input');
   }
 
   async goto() {
     await this.page.goto('/accounts-payable');
-    await this.table.waitFor({ state: 'visible' });
-  }
-
-  rowByBillNumber(billNumber: string): Locator {
-    return this.table.getByRole('row', { name: new RegExp(billNumber) });
-  }
-
-  async search(query: string) {
-    await this.searchInput.fill(query);
-    await this.searchInput.press('Enter');
-  }
-
-  async openBill(billNumber: string) {
-    await this.rowByBillNumber(billNumber).click();
+    await this.searchInput.waitFor({ state: 'visible' });
   }
 
   async openNewBillForm() {
     await this.newBillButton.click();
   }
 
-  async getTotalForRow(billNumber: string): Promise<string> {
-    const cells = this.rowByBillNumber(billNumber).getByRole('cell');
-    return (await cells.last().innerText()).trim();
+  async search(query: string) {
+    await this.searchInput.fill(query);
   }
 
-  async deleteBill(billNumber: string) {
-    await this.rowByBillNumber(billNumber)
-      .getByRole('button', { name: /delete|remove/i })
-      .click();
+  rowOpenCell(rowIndex = 0): Locator {
+    return this.page.getByTestId(`ap-table-row-${rowIndex}-cell-3`);
   }
 
-  /** True once the current view shows zero matching rows (via empty table or an empty-state message). */
+  rowLocator(rowIndex = 0): Locator {
+    return this.rowOpenCell(rowIndex).locator('xpath=ancestor::tr');
+  }
+
+  async openBillAtRow(rowIndex = 0) {
+    await this.rowOpenCell(rowIndex).click();
+  }
+
+  async rowText(rowIndex = 0): Promise<string> {
+    return (await this.rowLocator(rowIndex).innerText()).trim();
+  }
+
+  rowActionsTrigger(rowIndex = 0): Locator {
+    return this.rowLocator(rowIndex).locator('button').last();
+  }
+
   async hasNoResults(): Promise<boolean> {
-    const rowCount = await this.table.getByRole('row').count();
-    const emptyStateVisible = await this.noResultsMessage.isVisible().catch(() => false);
-    return rowCount === 0 || emptyStateVisible;
+    return (await this.rowOpenCell(0).count()) === 0;
   }
 }

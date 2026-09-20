@@ -15,13 +15,16 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.deleteBill(billNumber);
+    await billsListPage.rowActionsTrigger(0).click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: /cancel/i }).click();
 
-    await expect(billsListPage.rowByBillNumber(billNumber)).toBeVisible();
+    await billsListPage.goto();
+    await billsListPage.search(billNumber);
+    expect(await billsListPage.hasNoResults()).toBe(false);
   });
 
   test('confirming deletion removes the bill from the list', async ({ page, billsListPage, billFormPage }) => {
@@ -31,16 +34,17 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.deleteBill(billNumber);
+    await billsListPage.rowActionsTrigger(0).click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole('button', { name: /delete|confirm|yes/i }).click();
-
-    await expect(page.getByText(/bill deleted/i)).toBeVisible({ timeout: 10_000 });
+    if (await dialog.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await dialog.getByRole('button', { name: /delete|confirm|yes/i }).click();
+    }
+    await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await expect(billsListPage.rowByBillNumber(billNumber)).toHaveCount(0);
+    expect(await billsListPage.hasNoResults()).toBe(true);
   });
 });

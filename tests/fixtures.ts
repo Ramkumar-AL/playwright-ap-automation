@@ -32,11 +32,18 @@ export const test = base.extend<Fixtures>({
     for (const billNumber of createdBillNumbers) {
       await listPage.goto();
       await listPage.search(billNumber);
-      const row = listPage.rowByBillNumber(billNumber);
-      if (await row.count()) {
-        await listPage.deleteBill(billNumber);
-        const confirmButton = page.getByRole('dialog').getByRole('button', { name: /delete|confirm|yes/i });
-        await confirmButton.click().catch(() => {});
+      if (await listPage.hasNoResults()) continue;
+
+      await listPage.rowActionsTrigger(0).click();
+      await page.getByRole('menuitem', { name: 'Delete' }).click();
+
+      // Some flows show a confirmation dialog first, others delete immediately.
+      const confirmDialog = page.getByRole('dialog');
+      if (await confirmDialog.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await confirmDialog
+          .getByRole('button', { name: /delete|confirm|yes/i })
+          .click()
+          .catch(() => {});
       }
     }
   },

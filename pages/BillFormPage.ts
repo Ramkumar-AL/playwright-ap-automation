@@ -2,77 +2,105 @@ import { Page, Locator } from '@playwright/test';
 
 export interface LineItem {
   description: string;
+  itemName: string;
   quantity: number;
-  rate: number;
+  /** The line's amount, entered directly into the Subtotal field (this app does not auto-derive it from quantity × rate). */
+  subtotal: number;
 }
 
 export interface BillHeader {
-  vendor: string;
   billNumber: string;
-  billDate: string;
-  dueDate: string;
+  /** Defaults to billNumber when omitted. */
+  supplierInvoiceNo?: string;
+  /** Exact vendor text to pick; when omitted, the first suggestion is used. */
+  vendor?: string;
 }
 
 /**
- * Locators here are best-effort, role/label-based guesses (the AUT could not be
- * reached from the environment this suite was authored in — outbound network
- * access was blocked by sandbox policy). If the real DOM uses different
- * labels/roles, adjust the getters below; every test consumes them, so a
- * single edit here propagates everywhere.
+ * Locators verified against the real app (https://app.aiaccountant.com/accounts-payable/create-bill)
+ * via Playwright codegen — see data-testid attributes below. The "Suggestions"
+ * listbox is reused by several custom dropdowns (GST Registration, Vendor,
+ * Purchase Ledger, Place of Supply); clicking it with nothing typed selects
+ * the top/only suggestion.
  */
 export class BillFormPage {
   readonly page: Page;
-  readonly vendorInput: Locator;
+  readonly locationTrigger: Locator;
+  readonly suggestionsListbox: Locator;
   readonly billNumberInput: Locator;
-  readonly billDateInput: Locator;
-  readonly dueDateInput: Locator;
+  readonly billDateTrigger: Locator;
+  readonly supplierInvoiceInput: Locator;
+  readonly vendorTrigger: Locator;
+  readonly purchaseLedgerTrigger: Locator;
+  readonly lineItemsContainer: Locator;
   readonly addLineItemButton: Locator;
   readonly saveButton: Locator;
-  readonly totalDisplay: Locator;
   readonly attachmentInput: Locator;
   readonly validationMessages: Locator;
+  readonly successToastCloseButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.vendorInput = page.getByLabel(/vendor/i);
-    this.billNumberInput = page.getByLabel(/bill (number|no\.?)/i);
-    this.billDateInput = page.getByLabel(/bill date/i);
-    this.dueDateInput = page.getByLabel(/due date/i);
-    this.addLineItemButton = page.getByRole('button', { name: /add line|add item/i });
-    this.saveButton = page.getByRole('button', { name: /save|create bill/i });
-    this.totalDisplay = page.getByTestId('bill-total');
+    this.locationTrigger = page.getByRole('button', { name: 'Select Location' });
+    this.suggestionsListbox = page.getByRole('listbox', { name: 'Suggestions' });
+    this.billNumberInput = page.getByTestId('vendor-details-input-bill-number');
+    this.billDateTrigger = page.getByRole('button', { name: 'Select Bill Date' });
+    this.supplierInvoiceInput = page.getByTestId('vendor-details-input-supplier-invoice-no');
+    this.vendorTrigger = page.getByTestId('vendor-details-select-vendor-name');
+    this.purchaseLedgerTrigger = page.getByTestId('line-items-select-ledger');
+    this.lineItemsContainer = page.getByTestId('line-items-section-item-mode');
+    this.addLineItemButton = page.getByRole('button', { name: /add line item/i });
+    this.saveButton = page.getByTestId('top-bar-button-save');
     this.attachmentInput = page.locator('input[type="file"]');
     this.validationMessages = page.getByRole('alert').or(page.getByText(/required|cannot be blank|is required/i));
-  }
-
-  lineItemRow(index: number): Locator {
-    // +1 skips the header row inside the line-items table.
-    return this.page.getByRole('row').nth(index + 1);
-  }
-
-  async fillVendor(vendor: string) {
-    await this.vendorInput.fill(vendor);
-    const option = this.page.getByRole('option', { name: vendor });
-    if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await option.click();
-    }
+    // This app's toast library exposes a generic "Close toast" dismiss button
+    // on every success/error toast, making it a reliable action-completed signal.
+    this.successToastCloseButton = page.getByRole('button', { name: 'Close toast' });
   }
 
   async fillHeader(header: BillHeader) {
-    await this.fillVendor(header.vendor);
+    await this.locationTrigger.click();
+    await this.suggestionsListbox.click();
+
     await this.billNumberInput.fill(header.billNumber);
-    await this.billDateInput.fill(header.billDate);
-    await this.dueDateInput.fill(header.dueDate);
+
+    await this.billDateTrigger.click();
+    await this.page.getByRole('gridcell', { name: String(new Date().getDate()), exact: true }).click();
+
+    await this.supplierInvoiceInput.fill(header.supplierInvoiceNo ?? header.billNumber);
+
+    await this.vendorTrigger.click();
+    if (header.vendor) {
+      await this.page.getByText(header.vendor, { exact: true }).click();
+    } else {
+      await this.suggestionsListbox.click();
+    }
+
+    // Some vendors trigger an additional, conditionally-rendered "Place of Supply" field.
+    const stateTrigger = this.page.getByRole('button', { name: 'Select State' });
+    if (await stateTrigger.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await stateTrigger.click();
+      await this.suggestionsListbox.click();
+    }
   }
 
   async addLineItem(item: LineItem, rowIndex: number) {
     if (rowIndex > 0) {
       await this.addLineItemButton.click();
     }
-    const row = this.lineItemRow(rowIndex);
-    await row.getByLabel(/description/i).fill(item.description);
-    await row.getByLabel(/quantity/i).fill(String(item.quantity));
-    await row.getByLabel(/rate|unit price/i).fill(String(item.rate));
+
+    await this.lineItemsContainer.getByRole('textbox', { name: 'Enter Description' }).nth(rowIndex).fill(item.description);
+
+    await this.page.getByTestId(`historical-data-item-details-item-name-${rowIndex}`).click();
+    await this.page.getByText(item.itemName, { exact: true }).click();
+
+    await this.page.getByTestId(`line-items-input-quantity-${rowIndex}`).fill(String(item.quantity));
+    await this.page.getByTestId(`line-items-input-subtotal-${rowIndex}`).fill(String(item.subtotal));
+  }
+
+  async selectPurchaseLedger() {
+    await this.purchaseLedgerTrigger.click();
+    await this.suggestionsListbox.click();
   }
 
   async save() {
@@ -83,11 +111,11 @@ export class BillFormPage {
     await this.attachmentInput.setInputFiles(filePath);
   }
 
-  async getDisplayedTotal(): Promise<string> {
-    if (await this.totalDisplay.count()) {
-      return (await this.totalDisplay.innerText()).trim();
-    }
-    const totalRow = this.page.getByText(/^total$/i).locator('xpath=..');
-    return (await totalRow.innerText()).trim();
+  /** Best-effort: reads the "Grand Total" row's text and extracts the numeric amount. */
+  async getGrandTotal(): Promise<number> {
+    const row = this.page.locator(':text("Grand Total")').last();
+    const text = await row.innerText();
+    const match = text.replace(/,/g, '').match(/[\d.]+/);
+    return match ? parseFloat(match[0]) : NaN;
   }
 }

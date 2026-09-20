@@ -14,7 +14,7 @@ test.describe('Search bills', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await expect(billsListPage.rowByBillNumber(billNumber)).toBeVisible();
+    expect(await billsListPage.rowText(0)).toContain(billNumber);
 
     // A search for a bill number that cannot exist returns no rows.
     await billsListPage.search(`NON-EXISTENT-${Date.now()}`);

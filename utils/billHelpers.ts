@@ -1,22 +1,18 @@
+import { expect } from '@playwright/test';
 import { BillsListPage } from '../pages/BillsListPage';
 import { BillFormPage, LineItem } from '../pages/BillFormPage';
-import { todayISO, futureDateISO } from './testData';
 
-/** Creates a single-line-item bill under the given vendor/bill number and saves it. */
+/** Creates a single-line-item bill and saves it, waiting for the success toast. */
 export async function createBill(
   billsListPage: BillsListPage,
   billFormPage: BillFormPage,
   billNumber: string,
-  vendor = 'Acme Supplies',
-  lineItem: LineItem = { description: 'Consulting services', quantity: 1, rate: 100 }
+  lineItem: LineItem = { description: 'Consulting services', itemName: '1 Ltr Pet Bottle', quantity: 1, subtotal: 100 }
 ) {
   await billsListPage.openNewBillForm();
-  await billFormPage.fillHeader({
-    vendor,
-    billNumber,
-    billDate: todayISO(),
-    dueDate: futureDateISO(30),
-  });
+  await billFormPage.fillHeader({ billNumber });
   await billFormPage.addLineItem(lineItem, 0);
+  await billFormPage.selectPurchaseLedger();
   await billFormPage.save();
+  await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
 }
