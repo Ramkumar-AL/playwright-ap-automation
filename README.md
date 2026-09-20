@@ -11,12 +11,14 @@ Payable module at `https://app.aiaccountant.com/accounts-payable`.
 | High | `tests/required-field-validation.spec.ts` | Attempting to save an incomplete bill is blocked with validation feedback |
 | High | `tests/delete-bill.spec.ts` | Delete flow: viewing a bill's details without deleting keeps it in the list, clicking the trash icon removes it (2 tests) |
 | High | `tests/edit-bill.spec.ts` | Editing a bill's line item updates the total in both the details view and the bills list |
-| Medium | `tests/search-bill.spec.ts` | Searching by full and partial bill number returns the matching bill; a non-existent search returns no results |
 | Medium | `tests/upload-valid-attachment.spec.ts` | Uploading a single PDF attaches it to the bill successfully |
 | Medium | `tests/upload-invalid-attachment.spec.ts` | The file input restricts uploads to supported formats; forcing a bypass still doesn't attach the file |
 
-9 tests total across 7 files, covering all 4 high-priority scenarios and 3 of
-the medium-priority scenarios from the exercise brief.
+7 tests total across 6 files, covering all 4 high-priority scenarios and 2 of
+the medium-priority scenarios from the exercise brief. (Search/filter is
+intentionally not automated as a standalone scenario, by request — the
+underlying `BillsListPage.search()` lookup is still used internally by the
+other tests to locate the bill they just created.)
 
 ## Project structure
 
@@ -112,24 +114,27 @@ few app-specific behaviors worth knowing:
   that restriction is actually declared, plus that forcing a bypass (via
   `setInputFiles`, which real users can't do) still doesn't attach the file.
 - **Search results can span multiple rows** on this shared, actively-used
-  account (1700+ bills, broad partial-text matching per AP-083/084), and the
-  table can flicker through loading/stale states after typing — sometimes
-  more than once, and the debounced filter itself can take several seconds
-  on a slow connection. `BillsListPage.findRowIndex()` is the single,
-  internally-retrying source of truth for "is this bill in the results";
-  `search()` returns its resolved index directly so callers don't need a
-  second, separately-flaky lookup right after.
+  account (1700+ bills, broad partial-text matching), and the table can
+  flicker through loading/stale states after typing — sometimes more than
+  once, and the debounced filter itself can take several seconds on a slow
+  connection. Every other test uses `BillsListPage.search()` internally to
+  locate the bill it just created before opening/editing/deleting it.
+  `findRowIndex()` is the single, internally-retrying source of truth for
+  "is this bill in the results", checking for the app's own explicit
+  `"No bills available for selected filter."` empty-state message rather
+  than just an ambiguous zero row count; `search()` returns its resolved
+  index directly so callers don't need a second, separately-flaky lookup
+  right after.
 
 ## Source of test data
 
 Test data (exact vendor/GST Registration/Purchase Ledger names, expected
 totals) and exact success/validation message wording used in the specs come
 from a manually-authored, verified test case document (`AP_Module_TestCases_final.xlsx`,
-test cases AP-001, AP-013, AP-079, AP-082, AP-083/AP-084), not from guessing.
-That document covers a much larger surface (Review Voucher approval, vendor
-matching, split bills, sync, bulk uploads, and more) than this suite
-automates — this project deliberately stays scoped to the five scenarios
-above.
+test cases AP-001, AP-013, AP-079, AP-082), not from guessing. That document
+covers a much larger surface (Review Voucher approval, vendor matching,
+split bills, sync, bulk uploads, and more) than this suite automates — this
+project deliberately stays scoped to the scenarios above.
 
 ## Fixtures
 
