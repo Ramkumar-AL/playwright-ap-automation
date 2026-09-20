@@ -57,6 +57,12 @@ export class BillsListPage {
     await this.rowOpenCell(rowIndex).click();
   }
 
+  /** Opens a bill's read-only details page, then its actual editable form (a separate route). */
+  async openEditFormAtRow(rowIndex = 0) {
+    await this.openBillAtRow(rowIndex);
+    await this.page.getByTestId('bill-button-edit').click();
+  }
+
   async rowText(rowIndex = 0): Promise<string> {
     return (await this.rowLocator(rowIndex).innerText()).trim();
   }

@@ -15,7 +15,7 @@ test.describe('Edit bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.openBillAtRow(0);
+    await billsListPage.openEditFormAtRow(0);
 
     const expectedTotal = 250;
     await billFormPage.page.getByTestId('line-items-input-subtotal-0').fill(String(expectedTotal));
@@ -23,6 +23,12 @@ test.describe('Edit bill', () => {
 
     await billFormPage.save();
     await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
+
+    // Persisted total in the bill's own (read-only) details view.
+    await billsListPage.goto();
+    await billsListPage.search(billNumber);
+    await billsListPage.openBillAtRow(0);
+    await expect(billFormPage.page.getByText(expectedTotal.toString())).toBeVisible();
 
     // Persisted total reflected back in the bills list.
     await billsListPage.goto();
