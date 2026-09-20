@@ -20,13 +20,17 @@ export const test = base.extend<Fixtures>({
   },
 
   // Deletes every tracked bill after the test finishes (pass or fail) so
-  // repeated runs never trip over data left behind by a previous run.
+  // repeated runs never trip over data left behind by a previous run. Set
+  // KEEP_TEST_DATA=1 to skip this and leave created bills in place for
+  // manual inspection.
   trackBillForCleanup: async ({ page }, use) => {
     const createdBillNumbers: string[] = [];
 
     await use((billNumber: string) => {
       createdBillNumbers.push(billNumber);
     });
+
+    if (process.env.KEEP_TEST_DATA === '1') return;
 
     const listPage = new BillsListPage(page);
     for (const billNumber of createdBillNumbers) {

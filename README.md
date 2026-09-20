@@ -75,6 +75,9 @@ session instead of logging in again, which is both faster and more stable.
   left clean after each run. Tests whose own assertions already delete the
   bill (e.g. the "confirm delete" case) skip this fixture since there is
   nothing left to clean up.
+- Set `KEEP_TEST_DATA=1` to skip this cleanup and leave created bills in
+  place — useful while manually inspecting a run, but leaves clutter behind,
+  so don't leave it set for routine runs.
 
 ## Notes on the real app
 
