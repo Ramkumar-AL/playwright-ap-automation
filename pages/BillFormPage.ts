@@ -65,7 +65,9 @@ export class BillFormPage {
   async fillHeader(header: BillHeader) {
     await this.locationTrigger.click();
     if (header.gstRegistration) {
-      await this.page.getByText(header.gstRegistration, { exact: true }).click();
+      // .last(): these dropdowns can render the same text twice (e.g. a
+      // category header plus the actual leaf option).
+      await this.page.getByText(header.gstRegistration, { exact: true }).last().click();
     } else {
       await this.suggestionsListbox.click();
     }
@@ -79,7 +81,7 @@ export class BillFormPage {
 
     await this.vendorTrigger.click();
     if (header.vendor) {
-      await this.page.getByText(header.vendor, { exact: true }).click();
+      await this.page.getByText(header.vendor, { exact: true }).last().click();
     } else {
       await this.suggestionsListbox.click();
     }
@@ -125,7 +127,9 @@ export class BillFormPage {
   async selectPurchaseLedger(exactName?: string) {
     await this.purchaseLedgerTrigger.click();
     if (exactName) {
-      await this.page.getByText(exactName, { exact: true }).click();
+      // .last(): this tree-structured dropdown can show the name as both a
+      // bold category header and the actual selectable leaf item.
+      await this.page.getByText(exactName, { exact: true }).last().click();
     } else {
       await this.suggestionsListbox.click();
     }
