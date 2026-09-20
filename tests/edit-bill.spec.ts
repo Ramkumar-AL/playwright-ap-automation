@@ -19,7 +19,7 @@ test.describe('Edit bill', () => {
 
     const expectedTotal = 250;
     await billFormPage.page.getByTestId('line-items-input-subtotal-0').fill(String(expectedTotal));
-    expect(await billFormPage.getGrandTotal()).toBe(expectedTotal);
+    await expect.poll(() => billFormPage.getGrandTotal()).toBe(expectedTotal);
 
     await billFormPage.save();
     await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });

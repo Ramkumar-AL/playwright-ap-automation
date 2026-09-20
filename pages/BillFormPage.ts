@@ -92,7 +92,14 @@ export class BillFormPage {
     await this.lineItemsContainer.getByRole('textbox', { name: 'Enter Description' }).nth(rowIndex).fill(item.description);
 
     await this.page.getByTestId(`historical-data-item-details-item-name-${rowIndex}`).click();
-    await this.page.getByText(item.itemName, { exact: true }).click();
+    // .last(): the newly opened dropdown's option renders after any
+    // already-selected value with matching text elsewhere on the page.
+    await this.page.getByText(item.itemName, { exact: true }).last().click();
+
+    // A row's Quantity/Subtotal stay disabled until Godown/Location is set —
+    // rows beyond the first don't inherit a usable default the way row 0 does.
+    await this.page.getByTestId(`line-items-select-godown-location-${rowIndex}`).click();
+    await this.suggestionsListbox.click();
 
     await this.page.getByTestId(`line-items-input-quantity-${rowIndex}`).fill(String(item.quantity));
     await this.page.getByTestId(`line-items-input-subtotal-${rowIndex}`).fill(String(item.subtotal));

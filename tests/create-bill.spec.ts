@@ -18,7 +18,7 @@ test.describe('Create bill', () => {
     await billFormPage.selectPurchaseLedger();
 
     const expectedTotal = 300 + 400; // 700
-    expect(await billFormPage.getGrandTotal()).toBe(expectedTotal);
+    await expect.poll(() => billFormPage.getGrandTotal()).toBe(expectedTotal);
 
     await billFormPage.save();
     await expect(billFormPage.successToastCloseButton).toBeVisible({ timeout: 10_000 });
