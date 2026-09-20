@@ -1,0 +1,30 @@
+{
+  "name": "playwright-ap-automation",
+  "version": "1.0.0",
+  "description": "Playwright (TypeScript) automation for the Accounts Payable Bill workflows.",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ramkumar-AL/playwright-ap-automation.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ramkumar-AL/playwright-ap-automation/issues"
+  },
+  "homepage": "https://github.com/Ramkumar-AL/playwright-ap-automation#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "dotenv": "^18.0.1",
+    "typescript": "^7.0.2"
+  }
+}

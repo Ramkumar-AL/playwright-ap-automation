@@ -1,0 +1,2 @@
+This is a plain-text file used to verify that the upload-bill flow rejects
+unsupported attachment types.
