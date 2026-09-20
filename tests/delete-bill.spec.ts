@@ -29,9 +29,7 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    // A one-shot check here can catch a momentarily stale re-render; poll
-    // like search() itself does internally.
-    await expect.poll(() => billsListPage.findRowIndex(billNumber), { timeout: 10_000 }).not.toBeNull();
+    expect(await billsListPage.findRowIndex(billNumber)).not.toBeNull();
   });
 
   test('clicking the delete icon removes the bill from the list', async ({ page, billsListPage, billFormPage }) => {
@@ -47,6 +45,6 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await expect.poll(() => billsListPage.findRowIndex(billNumber), { timeout: 10_000 }).toBeNull();
+    expect(await billsListPage.findRowIndex(billNumber)).toBeNull();
   });
 });

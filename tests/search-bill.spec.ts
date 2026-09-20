@@ -23,10 +23,10 @@ test.describe('Search bills', () => {
     // rather than assuming it's the first row).
     const partialQuery = billNumber.slice(5, 15);
     await billsListPage.search(partialQuery);
-    await expect.poll(() => billsListPage.findRowIndex(billNumber), { timeout: 10_000 }).not.toBeNull();
+    expect(await billsListPage.findRowIndex(billNumber)).not.toBeNull();
 
     // A search for a bill number that cannot exist returns no rows.
     await billsListPage.search(`NON-EXISTENT-${Date.now()}`);
-    await expect.poll(() => billsListPage.hasNoResults(), { timeout: 5000 }).toBe(true);
+    expect(await billsListPage.hasNoResults()).toBe(true);
   });
 });

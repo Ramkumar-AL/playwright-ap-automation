@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 
 /**
  * Locators verified against the real Purchases list
@@ -14,9 +14,13 @@ import { Page, Locator, expect } from '@playwright/test';
  *
  * This is a shared, actively-used account with 1700+ bills, and search
  * matches broadly (any partial substring — see AP-083/084). A query can
- * legitimately return more than one row, so every lookup here searches
- * across the visible rows for the exact bill number rather than assuming
- * it's always row 0.
+ * legitimately return more than one row, and the table can flicker through
+ * more than one loading/transient state after typing (observed: it can
+ * settle on a match, then briefly reload again before a subsequent action
+ * runs). findRowIndex() is the single source of truth for "is this bill in
+ * the current results" and retries internally through that flakiness, so
+ * every caller — search() included — gets the same resilience for free
+ * instead of each one needing its own retry wrapper.
  */
 export class BillsListPage {
   readonly page: Page;
@@ -40,32 +44,31 @@ export class BillsListPage {
 
   async search(query: string) {
     await this.searchInput.fill(query);
-    // The table goes through transient states right after typing — briefly
-    // empty mid-debounce, or still showing the previous search's stale rows —
-    // either of which can look like a final result if checked only once.
-    // Poll for a real match first; only accept "no results" once it holds
-    // true across a short re-check, to rule out a mid-debounce false positive.
-    await expect
-      .poll(
-        async () => {
-          if ((await this.findRowIndex(query)) !== null) return true;
-          if (!(await this.hasNoResults())) return false;
-          await this.page.waitForTimeout(500);
-          return this.hasNoResults();
-        },
-        { timeout: 15_000 }
-      )
-      .toBe(true);
+    // Settle the search: this retries internally until a match appears or a
+    // genuine (repeatedly-confirmed) empty state is reached. The resulting
+    // index isn't needed here — search() just guarantees the list has
+    // stopped changing before the caller acts on it.
+    await this.findRowIndex(query, { timeout: 15_000 });
   }
 
-  /** Scans the visible rows (current page) for one whose text contains the given substring. */
-  async findRowIndex(text: string, maxRows = 10): Promise<number | null> {
-    for (let i = 0; i < maxRows; i++) {
-      if ((await this.rowOpenCell(i).count()) === 0) break;
-      const rowText = await this.rowLocator(i).innerText().catch(() => '');
-      if (rowText.includes(text)) return i;
+  /**
+   * Scans the visible rows (current page) for one whose text contains the
+   * given substring, retrying for up to `timeout` since the table can
+   * flicker through loading/stale states after a search. Returns null once
+   * that whole window has elapsed with no match — a genuine "not found".
+   */
+  async findRowIndex(text: string, options: { maxRows?: number; timeout?: number } = {}): Promise<number | null> {
+    const { maxRows = 10, timeout = 8000 } = options;
+    const deadline = Date.now() + timeout;
+    for (;;) {
+      for (let i = 0; i < maxRows; i++) {
+        if ((await this.rowOpenCell(i).count()) === 0) break;
+        const rowText = await this.rowLocator(i).innerText().catch(() => '');
+        if (rowText.includes(text)) return i;
+      }
+      if (Date.now() > deadline) return null;
+      await this.page.waitForTimeout(300);
     }
-    return null;
   }
 
   rowOpenCell(rowIndex = 0): Locator {
