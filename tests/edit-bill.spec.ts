@@ -15,7 +15,7 @@ test.describe('Edit bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.openEditFormAtRow(0);
+    await billsListPage.openEditFormByNumber(billNumber);
 
     const expectedTotal = 250;
     await billFormPage.page.getByTestId('line-items-input-subtotal-0').fill(String(expectedTotal));
@@ -28,13 +28,13 @@ test.describe('Edit bill', () => {
     // Persisted total in the bill's own (read-only) details view.
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.openBillAtRow(0);
+    await billsListPage.openBillByNumber(billNumber);
     await expect(billFormPage.page.getByText(expectedTotal.toString())).toBeVisible();
 
     // Persisted total reflected back in the bills list.
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    const rowText = await billsListPage.rowText(0);
+    const rowText = await billsListPage.rowTextForBillNumber(billNumber);
     expect(rowText.replace(/,/g, '')).toContain(expectedTotal.toString());
   });
 });

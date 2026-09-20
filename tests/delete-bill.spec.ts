@@ -22,14 +22,14 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.openBillAtRow(0);
+    await billsListPage.openBillByNumber(billNumber);
 
     await expect(page.getByTestId('bill-button-delete')).toBeVisible();
     await page.getByTestId('ap-button-back').click();
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    expect(await billsListPage.hasNoResults()).toBe(false);
+    expect(await billsListPage.findRowIndex(billNumber)).not.toBeNull();
   });
 
   test('clicking the delete icon removes the bill from the list', async ({ page, billsListPage, billFormPage }) => {
@@ -39,12 +39,12 @@ test.describe('Delete bill', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    await billsListPage.deleteBillAtRow(0);
+    await billsListPage.deleteBillByNumber(billNumber);
 
     await expect(page.getByText('Bill deleted')).toBeVisible({ timeout: 10_000 });
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    expect(await billsListPage.hasNoResults()).toBe(true);
+    expect(await billsListPage.findRowIndex(billNumber)).toBeNull();
   });
 });

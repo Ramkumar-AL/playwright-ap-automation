@@ -35,7 +35,7 @@ test.describe('Create bill', () => {
     // Persisted total must match what was shown on the form before saving.
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    const rowText = await billsListPage.rowText(0);
+    const rowText = await billsListPage.rowTextForBillNumber(billNumber);
     expect(rowText.replace(/,/g, '')).toContain(expectedTotal.toString());
   });
 });

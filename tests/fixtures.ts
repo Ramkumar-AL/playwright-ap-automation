@@ -35,7 +35,7 @@ export const test = base.extend<Fixtures>({
       if (await listPage.hasNoResults()) continue;
 
       // Deletion here is immediate — there is no confirm dialog.
-      await listPage.deleteBillAtRow(0);
+      await listPage.deleteBillByNumber(billNumber);
     }
   },
 });

@@ -16,12 +16,14 @@ test.describe('Search bills', () => {
 
     await billsListPage.goto();
     await billsListPage.search(billNumber);
-    expect(await billsListPage.rowText(0)).toContain(billNumber);
+    expect(await billsListPage.rowTextForBillNumber(billNumber)).toContain(billNumber);
 
-    // A partial substring of the Voucher No must also match.
+    // A partial substring of the Voucher No must also match (this can
+    // legitimately return other bills too, so look for ours specifically
+    // rather than assuming it's the first row).
     const partialQuery = billNumber.slice(5, 15);
     await billsListPage.search(partialQuery);
-    expect(await billsListPage.rowText(0)).toContain(billNumber);
+    expect(await billsListPage.findRowIndex(billNumber)).not.toBeNull();
 
     // A search for a bill number that cannot exist returns no rows.
     await billsListPage.search(`NON-EXISTENT-${Date.now()}`);
