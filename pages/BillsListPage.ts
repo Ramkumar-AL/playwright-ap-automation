@@ -27,10 +27,17 @@ export class BillsListPage {
   readonly newBillButton: Locator;
   readonly searchInput: Locator;
 
+  readonly emptyState: Locator;
+
   constructor(page: Page) {
     this.page = page;
     this.newBillButton = page.getByRole('button', { name: /create bill/i });
     this.searchInput = page.getByTestId('filter-search-input');
+    // A genuinely empty result set shows this exact message and removes the
+    // table entirely (confirmed via DevTools) — an unambiguous "done, empty"
+    // signal, unlike a merely-zero row count, which can also be true for an
+    // instant mid-debounce before real results load.
+    this.emptyState = page.getByText('No bills available for selected filter.');
   }
 
   async goto() {
@@ -72,6 +79,9 @@ export class BillsListPage {
         const rowText = await this.rowLocator(i).innerText().catch(() => '');
         if (rowText.includes(text)) return i;
       }
+      // The explicit empty-state message is definitive — return immediately
+      // rather than waiting out the rest of the budget "just in case".
+      if (await this.emptyState.isVisible().catch(() => false)) return null;
       if (Date.now() > deadline) return null;
       await this.page.waitForTimeout(300);
     }
@@ -134,6 +144,7 @@ export class BillsListPage {
   }
 
   async hasNoResults(): Promise<boolean> {
+    if (await this.emptyState.isVisible().catch(() => false)) return true;
     return (await this.rowOpenCell(0).count()) === 0;
   }
 }
