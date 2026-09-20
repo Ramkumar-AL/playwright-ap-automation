@@ -14,9 +14,10 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   reporter: [['html', { open: 'never' }], ['list']],
   // Generous: this app is a real, network-latency-bound staging environment
-  // (not a local dev server), and some flows chain several searches, each
-  // with its own debounce + result-stability check.
-  timeout: 90_000,
+  // (not a local dev server) against a shared account with 1700+ bills, and
+  // some flows chain several searches, each of which can itself take up to
+  // 25s for its debounced filter to resolve on a slow connection.
+  timeout: 150_000,
   expect: {
     timeout: 10_000,
   },

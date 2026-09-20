@@ -48,21 +48,23 @@ export class BillsListPage {
    * should use this return value directly rather than calling findRowIndex()
    * again afterward — a second, separate lookup re-opens the same window for
    * a transient re-render to be caught mid-flight that search() itself just
-   * spent up to 15s ruling out.
+   * spent up to 25s ruling out.
    */
   async search(query: string): Promise<number | null> {
     await this.searchInput.fill(query);
-    return this.findRowIndex(query, { timeout: 15_000 });
+    return this.findRowIndex(query, { timeout: 25_000 });
   }
 
   /**
    * Scans the visible rows (current page) for one whose text contains the
    * given substring, retrying for up to `timeout` since the table can
-   * flicker through loading/stale states after a search. Returns null once
-   * that whole window has elapsed with no match — a genuine "not found".
+   * flicker through loading/stale states after a search — and, on a slow
+   * connection against this real, actively-used account, the debounced
+   * filter itself can take a while to resolve. Returns null once that whole
+   * window has elapsed with no match — a genuine "not found".
    */
   async findRowIndex(text: string, options: { maxRows?: number; timeout?: number } = {}): Promise<number | null> {
-    const { maxRows = 10, timeout = 8000 } = options;
+    const { maxRows = 10, timeout = 15_000 } = options;
     const deadline = Date.now() + timeout;
     for (;;) {
       for (let i = 0; i < maxRows; i++) {
