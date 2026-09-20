@@ -9,7 +9,9 @@ export class LoginPage {
   constructor(page: Page) {
     this.page = page;
     this.emailInput = page.getByLabel(/email/i);
-    this.passwordInput = page.getByLabel(/password/i);
+    // getByLabel(/password/i) also matches the "Show password" toggle button's
+    // aria-label, causing a strict-mode violation — the testid is unambiguous.
+    this.passwordInput = page.getByTestId('login-input-password');
     this.signInButton = page.getByRole('button', { name: /sign in|log ?in/i });
   }
 
