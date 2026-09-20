@@ -2,11 +2,12 @@ import { Page, Locator } from '@playwright/test';
 
 /**
  * Locators verified against the real Purchases list
- * (https://app.aiaccountant.com/accounts-payable) via Playwright codegen.
- * The table uses data-testid="ap-table-row-{rowIndex}-cell-{colIndex}"; cell
- * index 3 is the clickable cell that opens a bill. The row-actions ("...")
- * trigger has no captured testid, so it's targeted as the last button in the
- * row — verify this if the delete flow doesn't find it.
+ * (https://app.aiaccountant.com/accounts-payable) via Playwright codegen and
+ * DevTools inspection. The table uses
+ * data-testid="ap-table-row-{rowIndex}-cell-{colIndex}"; cell index 3 is the
+ * clickable cell that opens a bill, cell index 8 holds the row's "..."
+ * actions button (data-testid="ap-button-Option"). Clicking "Delete" from
+ * that menu deletes immediately — there is no confirm/cancel dialog.
  */
 export class BillsListPage {
   readonly page: Page;
@@ -49,7 +50,7 @@ export class BillsListPage {
   }
 
   rowActionsTrigger(rowIndex = 0): Locator {
-    return this.rowLocator(rowIndex).locator('button').last();
+    return this.page.getByTestId(`ap-table-row-${rowIndex}-cell-8`).getByTestId('ap-button-Option');
   }
 
   async hasNoResults(): Promise<boolean> {

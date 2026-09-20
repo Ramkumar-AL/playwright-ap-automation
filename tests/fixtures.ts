@@ -34,17 +34,9 @@ export const test = base.extend<Fixtures>({
       await listPage.search(billNumber);
       if (await listPage.hasNoResults()) continue;
 
+      // Deletion here is immediate — there is no confirm dialog.
       await listPage.rowActionsTrigger(0).click();
       await page.getByRole('menuitem', { name: 'Delete' }).click();
-
-      // Some flows show a confirmation dialog first, others delete immediately.
-      const confirmDialog = page.getByRole('dialog');
-      if (await confirmDialog.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await confirmDialog
-          .getByRole('button', { name: /delete|confirm|yes/i })
-          .click()
-          .catch(() => {});
-      }
     }
   },
 });

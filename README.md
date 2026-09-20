@@ -9,7 +9,7 @@ Payable module at `https://app.aiaccountant.com/accounts-payable`.
 |---|---|---|
 | High | `tests/create-bill.spec.ts` | Create a bill with multiple line items and verify the total, both on-screen and after save |
 | High | `tests/required-field-validation.spec.ts` | Attempting to save an incomplete bill is blocked with validation feedback |
-| High | `tests/delete-bill.spec.ts` | Delete flow: cancel keeps the bill, confirm removes it (2 tests) |
+| High | `tests/delete-bill.spec.ts` | Delete flow: dismissing the row menu keeps the bill, choosing Delete removes it (2 tests) |
 | High | `tests/edit-bill.spec.ts` | Editing a bill's line item updates the total in both the details view and the bills list |
 | Medium | `tests/search-bill.spec.ts` | Searching by bill number returns only the matching bill; a non-existent search returns no results |
 | Medium | `tests/upload-valid-attachment.spec.ts` | Uploading a single PDF attaches it to the bill successfully |
@@ -76,23 +76,34 @@ session instead of logging in again, which is both faster and more stable.
   bill (e.g. the "confirm delete" case) skip this fixture since there is
   nothing left to clean up.
 
-## A note on locators
+## Notes on the real app
 
-This suite was authored in a sandboxed environment where outbound network
-access to `app.aiaccountant.com` was blocked by policy, so the real DOM could
-not be inspected directly. Locators in `pages/*.ts` are therefore
-**best-effort, semantic guesses** (`getByRole`, `getByLabel`, `getByPlaceholder`
-with case-insensitive name matching against the field labels named in the
-exercise brief — Vendor, Bill Number, Bill Date, Due Date, etc.).
+Most locators in `pages/*.ts` were confirmed against the live app via
+Playwright codegen and DevTools inspection (not guessed), which surfaced a
+few app-specific behaviors worth knowing:
 
-If a locator doesn't match the live app once you run these against it:
+- The bill form (`/accounts-payable/create-bill`) uses custom searchable
+  dropdowns (`data-testid`-based) rather than native `<select>`/`<label>`
+  pairs, and a shared `role="listbox"` named "Suggestions" that several
+  fields reuse.
+- A line item's amount is entered directly into a **Subtotal** field — it is
+  not derived from Quantity × Unit Rate.
+- Voucher Type defaults to "Purchase" and doesn't need to be touched.
+- Every successful action (create, edit, delete) shows a toast with a
+  generic "Close toast" dismiss button, used across the suite as the
+  success signal.
+- **Deleting a bill has no confirm/cancel dialog** — selecting "Delete" from
+  a row's "..." menu removes it immediately. `delete-bill.spec.ts` adapts
+  the required "confirmation and cancellation" scenario accordingly:
+  dismissing the menu without picking Delete is the safe path, and an
+  explicit Delete click is the destructive one.
 
-1. Run `npx playwright codegen $BASE_URL/accounts-payable` to inspect the real
-   accessible name/role/label for the element in question.
-2. Update the corresponding getter in `pages/LoginPage.ts`, `pages/BillsListPage.ts`,
-   or `pages/BillFormPage.ts` — every test consumes these getters, so a single
-   fix there propagates to all specs that use it.
-3. Re-run `npm run test:ui` to iterate quickly with the trace viewer.
+The upload tests' post-upload assertions (filename display, invalid-file
+error text) were not verified against the live app and may need adjusting —
+if they fail, open the failing test's trace (`npm run test:ui` or
+`npx playwright show-trace <path>`) to see the actual DOM/message and update
+`pages/BillFormPage.ts` accordingly; every test consumes these getters, so a
+single fix there propagates everywhere.
 
 ## Fixtures
 
