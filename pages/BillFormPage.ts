@@ -121,10 +121,11 @@ export class BillFormPage {
     await this.attachmentInput.setInputFiles(filePath);
   }
 
-  /** Best-effort: reads the "Grand Total" row's text and extracts the numeric amount. */
+  /** Reads the amount next to "Grand Total" (a sibling of the label, not inside it) and parses it as a number. */
   async getGrandTotal(): Promise<number> {
-    const row = this.page.locator(':text("Grand Total")').last();
-    const text = await row.innerText();
+    const label = this.page.getByText('Grand Total', { exact: true });
+    const container = label.locator('xpath=..');
+    const text = await container.innerText();
     const match = text.replace(/,/g, '').match(/[\d.]+/);
     return match ? parseFloat(match[0]) : NaN;
   }
