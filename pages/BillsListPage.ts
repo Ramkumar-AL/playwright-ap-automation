@@ -42,13 +42,17 @@ export class BillsListPage {
     await this.newBillButton.click();
   }
 
-  async search(query: string) {
+  /**
+   * Settles a search and returns the matching row index, or null if genuinely
+   * none exists. Callers checking "is this bill (still/now) in the results"
+   * should use this return value directly rather than calling findRowIndex()
+   * again afterward — a second, separate lookup re-opens the same window for
+   * a transient re-render to be caught mid-flight that search() itself just
+   * spent up to 15s ruling out.
+   */
+  async search(query: string): Promise<number | null> {
     await this.searchInput.fill(query);
-    // Settle the search: this retries internally until a match appears or a
-    // genuine (repeatedly-confirmed) empty state is reached. The resulting
-    // index isn't needed here — search() just guarantees the list has
-    // stopped changing before the caller acts on it.
-    await this.findRowIndex(query, { timeout: 15_000 });
+    return this.findRowIndex(query, { timeout: 15_000 });
   }
 
   /**
@@ -93,22 +97,27 @@ export class BillsListPage {
     }
   }
 
-  /** Finds the row matching billNumber and opens its details page. */
-  async openBillByNumber(billNumber: string) {
-    const rowIndex = await this.findRowIndex(billNumber);
-    if (rowIndex === null) throw new Error(`No row found matching "${billNumber}"`);
+  /**
+   * Finds the row matching billNumber and opens its details page. Pass the
+   * index already returned by search() as `knownRowIndex` to skip a second,
+   * separate lookup (which would re-open the same window for a transient
+   * re-render to be caught mid-flight).
+   */
+  async openBillByNumber(billNumber: string, knownRowIndex?: number | null) {
+    const rowIndex = knownRowIndex ?? (await this.findRowIndex(billNumber));
+    if (rowIndex === null || rowIndex === undefined) throw new Error(`No row found matching "${billNumber}"`);
     await this.openBillAtRow(rowIndex);
   }
 
   /** Opens a bill's read-only details page, then its actual editable form (a separate route). */
-  async openEditFormByNumber(billNumber: string) {
-    await this.openBillByNumber(billNumber);
+  async openEditFormByNumber(billNumber: string, knownRowIndex?: number | null) {
+    await this.openBillByNumber(billNumber, knownRowIndex);
     await this.page.getByTestId('bill-button-edit').click();
   }
 
   /** Deletes a bill from its own details page (the reliable path — the list's hover-only "..." menu is not). */
-  async deleteBillByNumber(billNumber: string) {
-    await this.openBillByNumber(billNumber);
+  async deleteBillByNumber(billNumber: string, knownRowIndex?: number | null) {
+    await this.openBillByNumber(billNumber, knownRowIndex);
     await this.page.getByTestId('bill-button-delete').click();
   }
 
@@ -116,9 +125,9 @@ export class BillsListPage {
     return (await this.rowLocator(rowIndex).innerText()).trim();
   }
 
-  async rowTextForBillNumber(billNumber: string): Promise<string> {
-    const rowIndex = await this.findRowIndex(billNumber);
-    if (rowIndex === null) throw new Error(`No row found matching "${billNumber}"`);
+  async rowTextForBillNumber(billNumber: string, knownRowIndex?: number | null): Promise<string> {
+    const rowIndex = knownRowIndex ?? (await this.findRowIndex(billNumber));
+    if (rowIndex === null || rowIndex === undefined) throw new Error(`No row found matching "${billNumber}"`);
     return this.rowText(rowIndex);
   }
 

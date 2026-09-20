@@ -25,8 +25,8 @@ test.describe('Upload bill attachment - valid file', () => {
 
     // Attachment must still be present after the round trip through the details view.
     await billsListPage.goto();
-    await billsListPage.search(billNumber);
-    await billsListPage.openBillByNumber(billNumber);
+    const rowIndex = await billsListPage.search(billNumber);
+    await billsListPage.openBillByNumber(billNumber, rowIndex);
     await expect(billFormPage.page.getByText(/sample-bill\.pdf/i)).toBeVisible();
   });
 });

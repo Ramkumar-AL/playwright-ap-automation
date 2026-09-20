@@ -31,11 +31,11 @@ export const test = base.extend<Fixtures>({
     const listPage = new BillsListPage(page);
     for (const billNumber of createdBillNumbers) {
       await listPage.goto();
-      await listPage.search(billNumber);
-      if (await listPage.hasNoResults()) continue;
+      const rowIndex = await listPage.search(billNumber);
+      if (rowIndex === null) continue;
 
       // Deletion here is immediate — there is no confirm dialog.
-      await listPage.deleteBillByNumber(billNumber);
+      await listPage.deleteBillByNumber(billNumber, rowIndex);
     }
   },
 });

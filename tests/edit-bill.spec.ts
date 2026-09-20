@@ -14,8 +14,8 @@ test.describe('Edit bill', () => {
     await createBill(billsListPage, billFormPage, billNumber);
 
     await billsListPage.goto();
-    await billsListPage.search(billNumber);
-    await billsListPage.openEditFormByNumber(billNumber);
+    let rowIndex = await billsListPage.search(billNumber);
+    await billsListPage.openEditFormByNumber(billNumber, rowIndex);
 
     const expectedTotal = 250;
     await billFormPage.page.getByTestId('line-items-input-subtotal-0').fill(String(expectedTotal));
@@ -27,14 +27,14 @@ test.describe('Edit bill', () => {
 
     // Persisted total in the bill's own (read-only) details view.
     await billsListPage.goto();
-    await billsListPage.search(billNumber);
-    await billsListPage.openBillByNumber(billNumber);
+    rowIndex = await billsListPage.search(billNumber);
+    await billsListPage.openBillByNumber(billNumber, rowIndex);
     await expect(billFormPage.page.getByText(expectedTotal.toString())).toBeVisible();
 
     // Persisted total reflected back in the bills list.
     await billsListPage.goto();
-    await billsListPage.search(billNumber);
-    const rowText = await billsListPage.rowTextForBillNumber(billNumber);
+    rowIndex = await billsListPage.search(billNumber);
+    const rowText = await billsListPage.rowTextForBillNumber(billNumber, rowIndex);
     expect(rowText.replace(/,/g, '')).toContain(expectedTotal.toString());
   });
 });

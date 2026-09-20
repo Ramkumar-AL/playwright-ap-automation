@@ -15,8 +15,8 @@ test.describe('Search bills', () => {
     await createBill(billsListPage, billFormPage, billNumber);
 
     await billsListPage.goto();
-    await billsListPage.search(billNumber);
-    expect(await billsListPage.rowTextForBillNumber(billNumber)).toContain(billNumber);
+    const rowIndex = await billsListPage.search(billNumber);
+    expect(await billsListPage.rowTextForBillNumber(billNumber, rowIndex)).toContain(billNumber);
 
     // A partial substring of the Voucher No must also match (this can
     // legitimately return other bills too, so look for ours specifically
@@ -26,7 +26,7 @@ test.describe('Search bills', () => {
     expect(await billsListPage.findRowIndex(billNumber)).not.toBeNull();
 
     // A search for a bill number that cannot exist returns no rows.
-    await billsListPage.search(`NON-EXISTENT-${Date.now()}`);
-    expect(await billsListPage.hasNoResults()).toBe(true);
+    const noMatchIndex = await billsListPage.search(`NON-EXISTENT-${Date.now()}`);
+    expect(noMatchIndex).toBeNull();
   });
 });
