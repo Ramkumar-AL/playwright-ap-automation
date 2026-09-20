@@ -34,16 +34,21 @@ export class BillsListPage {
 
   async search(query: string) {
     await this.searchInput.fill(query);
-    // The table shows loading skeletons briefly after a search; wait for real
-    // matching data (or a genuine empty state) before any caller acts on it.
+    // The table goes through transient states right after typing — briefly
+    // empty mid-debounce, or still showing the previous search's stale row —
+    // either of which can look like a final result if checked only once.
+    // Poll for a real match first; only accept "no results" once it holds
+    // true across a short re-check, to rule out a mid-debounce false positive.
     await expect
       .poll(
         async () => {
-          if (await this.hasNoResults()) return true;
           const text = await this.rowText(0).catch(() => '');
-          return text.includes(query);
+          if (text.includes(query)) return true;
+          if (!(await this.hasNoResults())) return false;
+          await this.page.waitForTimeout(500);
+          return this.hasNoResults();
         },
-        { timeout: 10_000 }
+        { timeout: 15_000 }
       )
       .toBe(true);
   }
