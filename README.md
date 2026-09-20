@@ -9,11 +9,11 @@ Payable module at `https://app.aiaccountant.com/accounts-payable`.
 |---|---|---|
 | High | `tests/create-bill.spec.ts` | Create a bill with multiple line items and verify the total, both on-screen and after save |
 | High | `tests/required-field-validation.spec.ts` | Attempting to save an incomplete bill is blocked with validation feedback |
-| High | `tests/delete-bill.spec.ts` | Delete flow: dismissing the row menu keeps the bill, choosing Delete removes it (2 tests) |
+| High | `tests/delete-bill.spec.ts` | Delete flow: viewing a bill's details without deleting keeps it in the list, clicking the trash icon removes it (2 tests) |
 | High | `tests/edit-bill.spec.ts` | Editing a bill's line item updates the total in both the details view and the bills list |
-| Medium | `tests/search-bill.spec.ts` | Searching by bill number returns only the matching bill; a non-existent search returns no results |
+| Medium | `tests/search-bill.spec.ts` | Searching by full and partial bill number returns the matching bill; a non-existent search returns no results |
 | Medium | `tests/upload-valid-attachment.spec.ts` | Uploading a single PDF attaches it to the bill successfully |
-| Medium | `tests/upload-invalid-attachment.spec.ts` | Uploading an unsupported file type is rejected with an error message |
+| Medium | `tests/upload-invalid-attachment.spec.ts` | The file input restricts uploads to supported formats; forcing a bypass still doesn't attach the file |
 
 9 tests total across 7 files, covering all 4 high-priority scenarios and 3 of
 the medium-priority scenarios from the exercise brief.
@@ -95,18 +95,27 @@ few app-specific behaviors worth knowing:
 - Every successful action (create, edit, delete) shows a toast with a
   generic "Close toast" dismiss button, used across the suite as the
   success signal.
-- **Deleting a bill has no confirm/cancel dialog** — selecting "Delete" from
-  a row's "..." menu removes it immediately. `delete-bill.spec.ts` adapts
-  the required "confirmation and cancellation" scenario accordingly:
-  dismissing the menu without picking Delete is the safe path, and an
-  explicit Delete click is the destructive one.
-
-The upload tests' post-upload assertions (filename display, invalid-file
-error text) were not verified against the live app and may need adjusting —
-if they fail, open the failing test's trace (`npm run test:ui` or
-`npx playwright show-trace <path>`) to see the actual DOM/message and update
-`pages/BillFormPage.ts` accordingly; every test consumes these getters, so a
-single fix there propagates everywhere.
+- **Deleting a bill has no confirm/cancel dialog**, and the list row's "..."
+  menu only renders on hover (unreliable to trigger via `.click()`).
+  Deletion instead goes through the always-visible trash icon
+  (`data-testid="bill-button-delete"`) on the bill's own details page.
+  `delete-bill.spec.ts` adapts the required "confirmation and cancellation"
+  scenario accordingly: viewing the details page and navigating back without
+  deleting is the safe path, and clicking the trash icon is the destructive one.
+- **Invalid file-type rejection has no error message** — confirmed manually
+  that a `.txt` file cannot be selected via the file picker or drag-and-drop
+  at all; the app relies on the file input's native `accept` attribute, not
+  a custom validation message. `upload-invalid-attachment.spec.ts` checks
+  that restriction is actually declared, plus that forcing a bypass (via
+  `setInputFiles`, which real users can't do) still doesn't attach the file.
+- **Search results can span multiple rows** on this shared, actively-used
+  account (1700+ bills, broad partial-text matching per AP-083/084), and the
+  table can flicker through loading/stale states after typing — sometimes
+  more than once, and the debounced filter itself can take several seconds
+  on a slow connection. `BillsListPage.findRowIndex()` is the single,
+  internally-retrying source of truth for "is this bill in the results";
+  `search()` returns its resolved index directly so callers don't need a
+  second, separately-flaky lookup right after.
 
 ## Source of test data
 
