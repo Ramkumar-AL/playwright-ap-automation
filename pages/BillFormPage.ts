@@ -143,12 +143,22 @@ export class BillFormPage {
     await this.attachmentInput.setInputFiles(filePath);
   }
 
-  /** Reads the amount next to "Grand Total" (a sibling of the label, not inside it) and parses it as a number. */
+  /**
+   * Reads the amount next to "Grand Total" and parses it as a number. The
+   * create/edit form renders the label and amount as direct siblings under
+   * one parent, but the read-only bill details page renders them as
+   * separate cells in the same row — so this widens its search up the
+   * ancestor chain (capped low enough to stay within the Grand Total row
+   * itself, without also reaching a shared ancestor that includes Sub Total).
+   */
   async getGrandTotal(): Promise<number> {
     const label = this.page.getByText('Grand Total', { exact: true });
-    const container = label.locator('xpath=..');
-    const text = await container.innerText();
-    const match = text.replace(/,/g, '').match(/[\d.]+/);
-    return match ? parseFloat(match[0]) : NaN;
+    for (let levels = 1; levels <= 3; levels++) {
+      const container = label.locator(`xpath=${Array(levels).fill('..').join('/')}`);
+      const text = await container.innerText().catch(() => '');
+      const match = text.replace(/,/g, '').match(/[\d.]+/);
+      if (match) return parseFloat(match[0]);
+    }
+    return NaN;
   }
 }
